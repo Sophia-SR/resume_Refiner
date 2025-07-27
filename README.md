@@ -73,11 +73,17 @@ The goal was to allow users to upload their resume and a job description and aut
 
 ## Screenshots
 
-To include:
+
+<img width="1424" height="575" alt="Screenshot 2025-07-26 at 10 41 14 PM" src="https://github.com/user-attachments/assets/d0c73471-8218-4467-91eb-d6efe71cfb9a" />
+
 - Full n8n agent workflow
+  
+  <img width="675" height="1314" alt="Screenshot 2025-07-26 at 10 42 47 PM" src="https://github.com/user-attachments/assets/fba18d4d-a861-4d61-b5b3-1db4e0a391eb" />
 - AI Agent node configuration
+  
+- <img width="675" height="1314" alt="Screenshot 2025-07-26 at 10 42 47 PM" src="https://github.com/user-attachments/assets/1af0daaa-0765-4561-aac2-59aa92f8ef81" />
+
 - Trigger (Form Submission) node
-- Sample user input and formatted email output
 
 ---
 
