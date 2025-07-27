@@ -1,0 +1,432 @@
+{
+  "name": "SR_ResumeRefiner_KuraLabs_2025",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "resume_file",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "resume_file",
+              "fieldType": "file",
+              "acceptFileTypes": "pdf",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "job_url",
+              "placeholder": "https://company.com/careers/job-posting",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "user_email",
+              "placeholder": "your@email.com",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "notes",
+              "fieldType": "textarea",
+              "placeholder": "Any specific requirements or focus areas?"
+            },
+            {
+              "fieldLabel": "output_format",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Markdown"
+                  },
+                  {
+                    "option": "Plain Text"
+                  },
+                  {
+                    "option": "HTML"
+                  }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "options": {
+          "respondWithOptions": {
+            "values": {
+              "formSubmittedText": "Thanks! Check your email in 3-5 minutes for your personalized recommendations."
+            }
+          },
+          "ignoreBots": true
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -96,
+        112
+      ],
+      "id": "100ffaaf-1475-4f4c-a33a-aeeb9e0b3f86",
+      "name": "On form submission",
+      "webhookId": "059f0e0c-26f8-402f-bf9d-89f9ed6ea473"
+    },
+    {
+      "parameters": {
+        "url": "={{$json.job_url}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        128,
+        0
+      ],
+      "id": "4bbbeba3-a2ee-40a8-b15a-0757a3763425",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "job_text",
+              "cssSelector": "body "
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        288,
+        0
+      ],
+      "id": "6bdc905e-e41d-4a0b-86e3-845194df5311",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "resume_file",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        208,
+        208
+      ],
+      "id": "1a9ed019-16ed-4b71-8615-5e7dbe91c5f4",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze the candidate’s resume against the job posting.\n\nReturn a single JSON object that conforms to the Structured Output Parser schema attached to this Agent.\nRules (concise):\n- Use EXACT keywords from the posting only when truthful.\n- No fabrication of jobs, dates, tools, degrees, or metrics.\n- Bullets ≤ 180 characters; action verbs; ATS-friendly.\n- Prefer the 2 most relevant roles; up to 3 bullets per role.\n- Output compact JSON only (no pretty printing, no extra text).\n\nOUTPUT_FORMAT (one of: \"markdown\", \"plaintext\", \"html\"):\n{{ $node[\"On form submission\"].json.output_format || \"markdown\" }}\n\nJOB POSTING CONTENT:\n{{ $json.job_text }}\n\nCURRENT RESUME CONTENT:\n{{ $json.resume_text }}\n\nCANDIDATE CONTEXT (optional):\n{{ $node[\"On form submission\"].json.notes || \"No additional context provided\" }}\n\nImportant:\n- Include ONLY the single copy-paste block key that matches OUTPUT_FORMAT.\n- Do not include the other two block formats.\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are an elite executive recruiter and ATS optimization specialist with 15+ years of experience placing candidates at Fortune 500 companies.\n\nNon-negotiable rules:\n- Return ONLY a single valid JSON object that matches the user-provided schema. No commentary, no code fences, no Markdown outside string values.\n- Use double quotes for all JSON strings; no trailing commas.\n- Do NOT fabricate employment, dates, degrees, tools, or metrics that are not in the resume. If something is missing, place suggestions in \"suggested_content\" or questions in \"questions_for_user\".\n- Style: ATS-friendly, US English, no first person (“I”, “we”), past tense for past roles, present tense for current role, strong action verbs, no emojis, no tables.\n- Bullets should be concise (≤ 180 characters), start with an action verb, and include measurable impact only if the resume provides it or it can be truthfully inferred without guessing.\n- Keep organization, role names, and dates exactly as in the resume except minor typo fixes.\n- Optimize for clarity and scannability: short lines, hyphen bullets, headings inside returned blocks where requested.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        1248,
+        -96
+      ],
+      "id": "c2efec9f-da78-4cab-9490-db03516f5c77",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "sendTo": "{{ $node[\"On Form Submission\"].json.user_email }}",
+        "subject": "Your AI-Optimized Resume Insights Are Ready",
+        "message": "Hi there!\n\nHere are your tailored resume enhancements, formatted as you requested:\n\n{{ $node[\"On Form Submission\"].json.output_format === \"markdown\" ? \n`**Headline:**  \n${$json.copy_paste_blocks_md.headline}\n\n**Summary:**  \n${$json.copy_paste_blocks_md.summary}\n\n**Top Skills:**  \n${$json.copy_paste_blocks_md.skills}\n\n**Top 5 Bullets:**  \n${$json.copy_paste_blocks_md.top_5_bullets}` \n: \n$node[\"On Form Submission\"].json.output_format === \"plaintext\" ? \n`Headline:  \n${$json.copy_paste_blocks_text.headline}\n\nSummary:  \n${$json.copy_paste_blocks_text.summary}\n\nSkills:  \n${$json.copy_paste_blocks_text.skills}\n\nTop 5 Bullets:  \n${$json.copy_paste_blocks_text.top_5_bullets}` \n: \n`<p><strong>Headline:</strong><br>${$json.copy_paste_blocks_html.headline}</p>\n\n<p><strong>Summary:</strong><br>${$json.copy_paste_blocks_html.summary}</p>\n\n<p><strong>Top Skills:</strong><br>${$json.copy_paste_blocks_html.skills}</p>\n\n<p><strong>Top 5 Bullets:</strong><br>${$json.copy_paste_blocks_html.top_5_bullets}</p>` }}\n\nThank you for using our AI Resume Assistant!\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1648,
+        96
+      ],
+      "id": "1247cf49-40d8-4422-aa38-f03b686a4ff2",
+      "name": "Send a message",
+      "webhookId": "c2775b1e-45e9-40d2-aa62-de8bb4d2f687",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "19fgNtuoajzlEg2p",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Clean resume content\nlet resumeText = $input.first().json.data || '';\n\n// Clean PDF artifacts\nresumeText = resumeText\n  .replace(/\\f/g, '\\n')           // Form feeds → newlines\n  .replace(/[^\\x20-\\x7E\\n]/g, '') // Remove non-printable chars\n  .replace(/\\s{3,}/g, '\\n')       // 3+ spaces → newline\n  .replace(/\\n{3,}/g, '\\n\\n')     // 3+ newlines → 2 newlines\n  .trim();\n\n// Truncate to 10000 chars\nif (resumeText.length > 10000) {\n  resumeText = resumeText.substring(0, 10000) + '...';\n}\n\nreturn [{\n  json: {\n    resume_text: resumeText,\n    content_length: resumeText.length\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        368,
+        208
+      ],
+      "id": "c4b31a7a-0af4-443f-b101-77f915db6468",
+      "name": "resume_Cleanup"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Clean job content\nconst jobData = $input.first().json;\nlet jobText = jobData.job_text || jobData.data || '';\n\n// Basic cleaning\njobText = jobText\n  .replace(/\\s+/g, ' ')           // Multiple spaces → single space\n  .replace(/\\n\\s*\\n/g, '\\n')      // Multiple newlines → single newline  \n  .trim();                        // Remove leading/trailing whitespace\n\n// Remove common website junk\njobText = jobText\n  .replace(/Cookie Policy|Privacy Policy|Terms of Service/gi, '')\n  .replace(/Sign in|Log in|Register|Subscribe/gi, '')\n  .replace(/Share|Tweet|LinkedIn|Facebook/gi, '');\n\n// Truncate to 12000 chars for API limits\nif (jobText.length > 12000) {\n  jobText = jobText.substring(0, 12000) + '...';\n}\n\nreturn [{\n  json: {\n    job_text: jobText,\n    content_length: jobText.length\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "f8478c25-792f-4df3-baab-69d4fc89b787",
+      "name": "job_Cleanup"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"type\": \"object\",\n  \"additionalProperties\": false,\n  \"properties\": {\n    \"job_analysis\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"position_title\": { \"type\": \"string\", \"maxLength\": 80 },\n        \"critical_requirements\": {\n          \"type\": \"array\",\n          \"items\": { \"type\": \"string\", \"maxLength\": 140 },\n          \"minItems\": 1,\n          \"maxItems\": 5\n        }\n      }\n    },\n    \"ats_optimization\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"missing_keywords\": {\n          \"type\": \"array\",\n          \"items\": { \"type\": \"string\", \"maxLength\": 40 },\n          \"maxItems\": 12\n        },\n        \"ats_compatibility_score\": {\n          \"type\": \"integer\",\n          \"minimum\": 0,\n          \"maximum\": 100\n        }\n      }\n    },\n    \"field_level_tailoring\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"headline_rewrite\": { \"type\": \"string\", \"maxLength\": 90 },\n        \"summary_rewrite\": { \"type\": \"string\", \"maxLength\": 600 },\n        \"skills\": {\n          \"type\": \"object\",\n          \"additionalProperties\": false,\n          \"properties\": {\n            \"keep\": { \"type\": \"array\", \"items\": { \"type\": \"string\" }, \"maxItems\": 20 },\n            \"add\":  { \"type\": \"array\", \"items\": { \"type\": \"string\" }, \"maxItems\": 12 },\n            \"remove\": { \"type\": \"array\", \"items\": { \"type\": \"string\" }, \"maxItems\": 10 }\n          }\n        },\n        \"experience_rewrites\": {\n          \"type\": \"array\",\n          \"maxItems\": 2,\n          \"items\": {\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n              \"role\": { \"type\": \"string\" },\n              \"company\": { \"type\": \"string\" },\n              \"dates\": { \"type\": \"string\", \"maxLength\": 50 },\n              \"keep_bullets\": {\n                \"type\": \"array\",\n                \"maxItems\": 3,\n                \"items\": { \"type\": \"string\", \"maxLength\": 180 }\n              },\n              \"replace_bullets\": {\n                \"type\": \"array\",\n                \"maxItems\": 3,\n                \"items\": {\n                  \"type\": \"object\",\n                  \"additionalProperties\": false,\n                  \"properties\": {\n                    \"before\": { \"type\": \"string\", \"maxLength\": 180 },\n                    \"after\": { \"type\": \"string\", \"maxLength\": 180 },\n                    \"reason\": { \"type\": \"string\", \"maxLength\": 140 }\n                  }\n                }\n              },\n              \"add_bullets\": {\n                \"type\": \"array\",\n                \"maxItems\": 3,\n                \"items\": { \"type\": \"string\", \"maxLength\": 180 }\n              },\n              \"remove_bullets\": {\n                \"type\": \"array\",\n                \"maxItems\": 2,\n                \"items\": { \"type\": \"string\", \"maxLength\": 180 }\n              }\n            }\n          }\n        }\n      }\n    },\n\n    \"copy_paste_blocks_md\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"headline\": { \"type\": \"string\" },\n        \"summary\": { \"type\": \"string\" },\n        \"skills\": { \"type\": \"string\" },\n        \"roles\": {\n          \"type\": \"array\",\n          \"maxItems\": 2,\n          \"items\": {\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n              \"role\": { \"type\": \"string\" },\n              \"company\": { \"type\": \"string\" },\n              \"md\": { \"type\": \"string\" }\n            }\n          }\n        },\n        \"top_5_bullets\": { \"type\": \"string\" }\n      }\n    },\n\n    \"copy_paste_blocks_text\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"headline\": { \"type\": \"string\" },\n        \"summary\": { \"type\": \"string\" },\n        \"skills\": { \"type\": \"string\" },\n        \"roles\": {\n          \"type\": \"array\",\n          \"maxItems\": 2,\n          \"items\": {\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n              \"role\": { \"type\": \"string\" },\n              \"company\": { \"type\": \"string\" },\n              \"text\": { \"type\": \"string\" }\n            }\n          }\n        },\n        \"top_5_bullets\": { \"type\": \"string\" }\n      }\n    },\n\n    \"copy_paste_blocks_html\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"properties\": {\n        \"headline\": { \"type\": \"string\" },\n        \"summary\": { \"type\": \"string\" },\n        \"skills\": { \"type\": \"string\" },\n        \"roles\": {\n          \"type\": \"array\",\n          \"maxItems\": 2,\n          \"items\": {\n            \"type\": \"object\",\n            \"additionalProperties\": false,\n            \"properties\": {\n              \"role\": { \"type\": \"string\" },\n              \"company\": { \"type\": \"string\" },\n              \"html\": { \"type\": \"string\" }\n            }\n          }\n        },\n        \"top_5_bullets\": { \"type\": \"string\" }\n      }\n    }\n  },\n  \"required\": [\"job_analysis\", \"ats_optimization\", \"field_level_tailoring\"],\n  \"oneOf\": [\n    { \"required\": [\"copy_paste_blocks_md\"] },\n    { \"required\": [\"copy_paste_blocks_text\"] },\n    { \"required\": [\"copy_paste_blocks_html\"] }\n  ]\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1504,
+        160
+      ],
+      "id": "5eff8910-f48a-4fd2-bccf-1772bf7ec99a",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        656,
+        96
+      ],
+      "id": "2cb83eb5-9524-4eaf-ae09-b7a2adfa827d",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1184,
+        160
+      ],
+      "id": "382c8d31-5a01-4065-85b3-c580a8d7a1e1",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "mMZcPqGVLJiMHHpr",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "423608df-b612-404d-bfd8-117a20b369be",
+              "name": "job_text",
+              "value": "={{ $json[\"job_content\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "fe27e92a-d890-4818-a567-2909c9f7452a",
+              "name": "resume_text",
+              "value": "={{ $json[\"resume_content\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "bf475627-fae0-4301-aebc-e38f31fa1d67",
+              "name": "output_format\t",
+              "value": "{{ $node[\"On Form Submission\"].json[\"output_format\"] || \"markdown\" }}",
+              "type": "string"
+            },
+            {
+              "id": "b55a5340-2a05-497c-abd4-794287526059",
+              "name": "notes",
+              "value": "{{ $node[\"On Form Submission\"].json[\"notes\"] || \"No additional context provided\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        864,
+        96
+      ],
+      "id": "13ad568f-6fd0-4d5c-b876-8f7e8abcc443",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "job_Cleanup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "resume_Cleanup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "resume_Cleanup": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "job_Cleanup": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "404c5284-e617-4440-a2a5-93151b7409ae",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9ac465e39f9de2ec7ae0fac5bbacf0bbbe02a569e31948dd99618550f65a7f19"
+  },
+  "id": "SaTiaFGheAMqioxm",
+  "tags": []
+}
