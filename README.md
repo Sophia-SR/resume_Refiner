@@ -81,7 +81,7 @@ The goal was to allow users to upload their resume and a job description and aut
   <img width="675" height="1314" alt="Screenshot 2025-07-26 at 10 42 47 PM" src="https://github.com/user-attachments/assets/fba18d4d-a861-4d61-b5b3-1db4e0a391eb" />
 - AI Agent node configuration
   
-- <img width="675" height="1314" alt="Screenshot 2025-07-26 at 10 42 47 PM" src="https://github.com/user-attachments/assets/1af0daaa-0765-4561-aac2-59aa92f8ef81" />
+<img width="675" height="1314" alt="Screenshot 2025-07-26 at 10 42 47 PM" src="https://github.com/user-attachments/assets/1af0daaa-0765-4561-aac2-59aa92f8ef81" />
 
 - Trigger (Form Submission) node
 
